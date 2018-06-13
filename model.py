@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-engine = create_engine('sqlite:///F:/projects/wx_festival_2/database')
+engine = create_engine('sqlite:///D:/onedrive/weixin_friends.sqlite')
 Session = sessionmaker(engine)
 
 Base = declarative_base()
@@ -15,7 +15,7 @@ class Friend(Base):
     nick_name = Column(String)
     remark_name = Column(String)
     call_name = Column(String)
-    done = Column(Boolean)
+    already_send = Column(Boolean)
 
     def __repr__(self):
         return f'<Friend {self.remark_name}>'
