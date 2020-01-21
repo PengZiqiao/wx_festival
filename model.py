@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from pathlib import Path
 
-engine = create_engine('sqlite:///D:/onedrive/weixin_friends.sqlite')
+root = Path.cwd()
+engine = create_engine(f'sqlite:///{root}/weixin_friends.sqlite')
 Session = sessionmaker(engine)
 
 Base = declarative_base()

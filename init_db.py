@@ -1,5 +1,5 @@
 from model import Friend, Session, Base, engine
-from wxpy import Bot
+from wxpy import Bot, ensure_one
 from retrying import retry
 
 
@@ -21,8 +21,25 @@ class FriendDatabase:
         Base.metadata.create_all(engine)
         self.insert(self.wx_friends)
 
-
     def update_friend_list(self):
+        # 删除数据库中已被删除的好友
+        delet_friends = []
+        for db_friend in self.db_friends:
+            wx_search_result = self.wx_friends.search(db_friend.nick_name)
+            if wx_search_result:
+                try:
+                    wx_friend = ensure_one(wx_search_result)
+                    not_same = wx_friend.nick_name!=db_friend.nick_name
+                except ValueError:
+                    print(f'>>>have a look at {db_friend}')
+            if not wx_search_result or not_same:
+                delet_friends.append(db_friend.nick_name)
+        if delet_friends:
+            self.db_friends.filter(Friend.nick_name.in_(
+                delet_friends)).delete(synchronize_session=False)
+            self.session.commit()
+            print(f'[*] {len(delet_friends)} friends have been deleted.')
+
         # 添加新好友
         new_friends = []
         for wx_friend in self.wx_friends:
@@ -30,20 +47,12 @@ class FriendDatabase:
                 new_friends.append(wx_friend)
         self.insert(new_friends)
 
-        # 加入删除数据库中已被删除的好友逻辑
-        delet_friends = []
-        for db_friend in self.db_friends:
-            if not self.wx_friends.search(db_friend.nick_name):
-                delet_friends.append(db_friend.nick_name)
-        if delet_friends:
-            self.db_friends.filter(Friend.nick_name.in_(delet_friends)).delete(synchronize_session=False)
-            self.session.commit()
-        print(f'[*] {len(delet_friends)} friends have been deleted.')
-
     def update_remark_name(self):
+        # 用数据库中remark_name更新微信中好友备注
         n = 0
         for wx_friend in self.wx_friends:
-            db_friend = self.db_friends.filter_by(nick_name=wx_friend.nick_name).first()
+            db_friend = self.db_friends.filter_by(
+                nick_name=wx_friend.nick_name).first()
             if db_friend and (wx_friend.remark_name != db_friend.remark_name):
                 self.set_remark_name(wx_friend, db_friend.remark_name)
                 n += 1
@@ -67,6 +76,8 @@ class FriendDatabase:
         self.session.commit()
         print(f'[*] {len(friends)} friends have been inserted to database.')
 
+
 if __name__ == '__main__':
     fdb = FriendDatabase()
-    fdb.update_friend_list()
+    # fdb.update_friend_list()
+    fdb.update_remark_name()
